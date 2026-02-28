@@ -1,0 +1,3 @@
+# Requirements for Kafka mini project
+kafka-python
+sqlite3
