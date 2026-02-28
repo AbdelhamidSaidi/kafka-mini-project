@@ -86,6 +86,3 @@ The producer sends a small batch of three synthetic sensor readings every second
 - Add graceful shutdown and metrics for processed message counts.
 - Add tests that mock Kafka to verify DB writes without a running broker.
 
----
-
-If you want, I can create a `requirements.txt`, commit this README, or add a small script that prints the latest rows from `warehouse.db`.
