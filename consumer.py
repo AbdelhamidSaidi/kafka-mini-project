@@ -17,7 +17,6 @@ cursor.execute('''
         sensor_id TEXT,
         val REAL,
         unit TEXT,
-        status TEXT,
         ts TEXT
     )
 ''')
@@ -45,9 +44,9 @@ def run_consumer():
             for message in consumer:
                 row = message.value
                 cursor.execute('''
-                    INSERT INTO sensor_logs (sensor_id, val, unit, status, ts)
-                    VALUES (?, ?, ?, ?, ?)
-                ''', (row.get('sensor_id'), row.get('value'), row.get('type'), row.get('status'), row.get('timestamp')))
+                    INSERT INTO sensor_logs (sensor_id, val, unit, ts)
+                    VALUES (?, ?, ?, ?)
+                ''', (row.get('sensor_id'), row.get('value'), row.get('type'), row.get('timestamp')))
                 db_connection.commit()
                 print(f"Stored: {row.get('sensor_id')} at {row.get('timestamp')}")
 
