@@ -70,27 +70,25 @@ jobs:
       - name: Sync repository to Oracle VM
         shell: bash
         run: |
-          OCI_HOST=$(grep "^OCI_HOST=" .env | cut -d= -f2)
-          OCI_USER=$(grep "^OCI_USER=" .env | cut -d= -f2)
-          OCI_PORT=$(grep "^OCI_PORT=" .env | cut -d= -f2 || echo "22")
-          OCI_APP_PATH=$(grep "^OCI_APP_PATH=" .env | cut -d= -f2 || echo "/home/$OCI_USER/IoT-sensors-streaming-pipeline")
+          OCI_PORT="${{ secrets.OCI_PORT }}"
+          OCI_APP_PATH="${{ secrets.OCI_APP_PATH }}"
+          OCI_USER="${{ secrets.OCI_USER }}"
           
           rsync -az --delete \
             -e "ssh -i ~/.ssh/oci_key -p ${OCI_PORT:-22}" \
             --exclude ".git" \
             --exclude "__pycache__" \
             --exclude ".pytest_cache" \
-            ./ "$OCI_USER@$OCI_HOST:${OCI_APP_PATH:-/home/$OCI_USER/IoT-sensors-streaming-pipeline}/"
+            ./ "$OCI_USER@${{ secrets.OCI_HOST }}:${OCI_APP_PATH:-/home/$OCI_USER/IoT-sensors-streaming-pipeline}/"
 
       - name: Deploy with docker compose
         shell: bash
         run: |
-          OCI_HOST=$(grep "^OCI_HOST=" .env | cut -d= -f2)
-          OCI_USER=$(grep "^OCI_USER=" .env | cut -d= -f2)
-          OCI_PORT=$(grep "^OCI_PORT=" .env | cut -d= -f2 || echo "22")
-          OCI_APP_PATH=$(grep "^OCI_APP_PATH=" .env | cut -d= -f2 || echo "/home/$OCI_USER/IoT-sensors-streaming-pipeline")
+          OCI_PORT="${{ secrets.OCI_PORT }}"
+          OCI_APP_PATH="${{ secrets.OCI_APP_PATH }}"
+          OCI_USER="${{ secrets.OCI_USER }}"
           
-          ssh -i ~/.ssh/oci_key -p "${OCI_PORT:-22}" "$OCI_USER@$OCI_HOST" << EOF
+          ssh -i ~/.ssh/oci_key -p "${OCI_PORT:-22}" "$OCI_USER@${{ secrets.OCI_HOST }}" << EOF
             set -e
             cd "${OCI_APP_PATH:-/home/$OCI_USER/IoT-sensors-streaming-pipeline}"
             docker compose down
