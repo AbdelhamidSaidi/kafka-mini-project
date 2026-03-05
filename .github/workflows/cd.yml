@@ -2,7 +2,7 @@ name: CD
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   workflow_dispatch:
 
 concurrency:
@@ -19,46 +19,64 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create .env file from GitHub secrets
-        shell: bash
+      - name: Validate required secrets
         run: |
-            cat > .env << 'ENVEOF'
-            MSSQL_SA_PASSWORD=${{ secrets.MSSQL_SA_PASSWORD }}
-            OCI_COMPARTMENT_ID=${{ secrets.OCI_COMPARTMENT_ID }}
-            OCI_CONFIG_PROFILE=${{ secrets.OCI_CONFIG_PROFILE }}
-            OCI_FINGERPRINT=${{ secrets.OCI_FINGERPRINT }}
-            OCI_HOST=${{ secrets.OCI_HOST }}
-            OCI_REGION=${{ secrets.OCI_REGION }}
-            OCI_TENANCY=${{ secrets.OCI_TENANCY }}
-            OCI_USER=${{ secrets.OCI_USER }}
-            OCI_CONFIG_FILE=${{ secrets.OCI_CONFIG_FILE }}
-            OCI_KEY_FILE=${{ secrets.OCI_KEY_FILE }}
-            OCI_SSH_PRIVATE_KEY=${{ secrets.OCI_SSH_PRIVATE_KEY }}
-            ENVEOF
+          missing=()
+          [[ -z "${{ secrets.OCI_HOST }}"            ]] && missing+=("OCI_HOST")
+          [[ -z "${{ secrets.OCI_USER }}"            ]] && missing+=("OCI_USER")
+          [[ -z "${{ secrets.OCI_PORT }}"            ]] && missing+=("OCI_PORT")
+          [[ -z "${{ secrets.OCI_APP_PATH }}"        ]] && missing+=("OCI_APP_PATH")
+          [[ -z "${{ secrets.OCI_VM_KEY }}"          ]] && missing+=("OCI_VM_KEY")
+          [[ -z "${{ secrets.MSSQL_SA_PASSWORD }}"   ]] && missing+=("MSSQL_SA_PASSWORD")
 
-      - name: Validate required variables
-        shell: bash
-        run: |
-          test -n "${{ secrets.OCI_HOST }}" || (echo "Missing secret: OCI_HOST" && exit 1)
-          test -n "${{ secrets.OCI_USER }}" || (echo "Missing secret: OCI_USER" && exit 1)
-          test -n "${{ secrets.OCI_SSH_PRIVATE_KEY }}" || (echo "Missing secret: OCI_SSH_PRIVATE_KEY " && exit 1)
-          test -n "${{ secrets.OCI_VM_SSH_PRIVATE_KEY }}" || (echo "Missing secret: OCI_VM_SSH_PRIVATE_KEY (for Oracle VM connection)" && exit 1)
-          echo "All required secrets are present"
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "❌ Missing secrets: ${missing[*]}"
+            exit 1
+          fi
+          echo "✅ All required secrets present"
 
-      - name: Setup SSH key
-        shell: bash
+      - name: Write SSH key
         run: |
           mkdir -p ~/.ssh
-          # Write SSH key directly from secret (preserves line breaks)
-          printf "%s\n" "${{ secrets.OCI_SSH_PRIVATE_KEY }}" > ~/.ssh/oci_key
-          chmod 600 ~/.ssh/oci_key
-          
-          # Display key fingerprint for debugging (without revealing key)
-          ssh-keygen -l -f ~/.ssh/oci_key || echo "Warning: Could not generate fingerprint"
-          
-          # Add host to known_hosts
-          OCI_PORT="${{ secrets.OCI_PORT }}"
-          ssh-keyscan -p "${OCI_PORT:-22}" "${{ secrets.OCI_HOST }}" >> ~/.ssh/known_hosts 2>&1 || echo "Warning: ssh-keyscan failed, proceeding anyway"
+          printf '%s\n' "${{ secrets.OCI_VM_KEY }}" > ~/.ssh/oci_vm_key
+          chmod 600 ~/.ssh/oci_vm_key
+          ssh-keygen -l -f ~/.ssh/oci_vm_key && echo "✅ Key fingerprint OK" || (echo "❌ Key is malformed" && exit 1)
+
+      - name: Add VM to known hosts
+        run: |
+          ssh-keyscan -p "${{ secrets.OCI_PORT }}" "${{ secrets.OCI_HOST }}" >> ~/.ssh/known_hosts
+          echo "✅ Host added to known_hosts"
+
+      - name: Test SSH connection
+        run: |
+          ssh \
+            -i ~/.ssh/oci_vm_key \
+            -p "${{ secrets.OCI_PORT }}" \
+            "${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }}" \
+            "echo '✅ SSH connection successful'"
+
+      - name: Create .env file
+        run: |
+          cat > .env <<EOF
+          MSSQL_SA_PASSWORD=${{ secrets.MSSQL_SA_PASSWORD }}
+          OCI_COMPARTMENT_ID=${{ secrets.OCI_COMPARTMENT_ID }}
+          OCI_CONFIG_PROFILE=${{ secrets.OCI_CONFIG_PROFILE }}
+          OCI_FINGERPRINT=${{ secrets.OCI_FINGERPRINT }}
+          OCI_HOST=${{ secrets.OCI_HOST }}
+          OCI_REGION=${{ secrets.OCI_REGION }}
+          OCI_TENANCY=${{ secrets.OCI_TENANCY }}
+          OCI_USER=${{ secrets.OCI_USER }}
+          OCI_CONFIG_FILE=${{ secrets.OCI_CONFIG_FILE }}
+          OCI_KEY_FILE=${{ secrets.OCI_KEY_FILE }}
+          EOF
+
+      - name: Ensure app directory exists on VM
+        run: |
+          ssh \
+            -i ~/.ssh/oci_vm_key \
+            -p "${{ secrets.OCI_PORT }}" \
+            "${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }}" \
+            "mkdir -p ${{ secrets.OCI_APP_PATH }}"
 
       - name: Sync repository to Oracle VM
         run: |
@@ -68,20 +86,16 @@ jobs:
             --exclude "__pycache__" \
             --exclude ".pytest_cache" \
             --exclude "*.pyc" \
-            --exclude ".env" \
             ./ "${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }}:${{ secrets.OCI_APP_PATH }}/"
 
-            
-      - name: Deploy with docker compose
-        shell: bash
+      - name: Deploy with Docker Compose
         run: |
-          OCI_PORT="${{ secrets.OCI_PORT }}"
-          OCI_APP_PATH="${{ secrets.OCI_APP_PATH }}"
-          OCI_USER="${{ secrets.OCI_USER }}"
-          
-          ssh -i ~/.ssh/oci_vm_key \
-            -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            -p "${OCI_PORT:-22}" \
-            "$OCI_USER@${{ secrets.OCI_HOST }}" \
-            "cd ${OCI_APP_PATH:-/home/$OCI_USER/IoT-sensors-streaming-pipeline} && docker compose down && docker compose up -d --build"
+          ssh \
+            -i ~/.ssh/oci_vm_key \
+            -p "${{ secrets.OCI_PORT }}" \
+            "${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }}" \
+            "cd ${{ secrets.OCI_APP_PATH }} && docker compose down && docker compose up -d --build"
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/oci_vm_key
