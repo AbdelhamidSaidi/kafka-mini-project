@@ -14,6 +14,11 @@ jobs:
     name: Deploy to Oracle Cloud
     runs-on: ubuntu-latest
     env:
+      OCI_HOST: ${{ secrets.OCI_HOST }}
+      OCI_COMPARTMENT_ID: ${{ secrets.OCI_COMPARTMENT_ID }}
+      OCI_CONFIG_FILE: ${{ secrets.OCI_CONFIG_FILE }}
+      OCI_KEY_FILE: ${{ secrets.OCI_KEY_FILE }}
+      OCI_CONFIG_PROFILE: ${{ secrets.OCI_CONFIG_PROFILE }}
       OCI_PORT: ${{ secrets.OCI_PORT || '22' }}
       OCI_APP_PATH: ${{ secrets.OCI_APP_PATH || format('/home/{0}/kafka-mini-project', secrets.OCI_USER) }}
 
