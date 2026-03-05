@@ -36,6 +36,15 @@ jobs:
           chmod 600 ~/.ssh/oci_key
           ssh-keyscan -p "$OCI_PORT" "${{ secrets.OCI_HOST }}" >> ~/.ssh/known_hosts
 
+      - name: Create .env file from secrets
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.OCI_ENV_FILE }}" ]; then
+            printf "%s" "${{ secrets.OCI_ENV_FILE }}" > .env
+          else
+            echo "Warning: OCI_ENV_FILE secret not set, proceeding without .env"
+          fi
+
       - name: Sync repository to Oracle VM
         shell: bash
         run: |
@@ -52,12 +61,7 @@ jobs:
           ssh -i ~/.ssh/oci_key -p "$OCI_PORT" "${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }}" << 'EOF'
             set -e
             APP_PATH="${{ env.OCI_APP_PATH }}"
-            mkdir -p "$APP_PATH"
             cd "$APP_PATH"
-
-            if [ -n "${{ secrets.OCI_ENV_FILE }}" ]; then
-              printf "%s" "${{ secrets.OCI_ENV_FILE }}" > .env
-            fi
 
             docker compose down
             docker compose up -d --build
