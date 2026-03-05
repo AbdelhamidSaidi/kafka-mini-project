@@ -189,6 +189,8 @@ def fetch_metrics(reload_counter=None):
         # per-metric variation and recent series for last minute
         metric_variation = pd.DataFrame()
         metric_series = {}
+        metric_variation_1s = {}
+        metric_series_1s = {}
         try:
             cur.execute("SELECT metric, sensor_id, MIN(value) AS min_v, MAX(value) AS max_v FROM gold_central WHERE ts >= DATEADD(MINUTE, -1, SYSUTCDATETIME()) GROUP BY metric, sensor_id")
             mv_rows = cur.fetchall()
@@ -222,8 +224,6 @@ def fetch_metrics(reload_counter=None):
                 except Exception:
                     continue
             # per-metric variation and series for the last second
-            metric_variation_1s = {}
-            metric_series_1s = {}
             try:
                 cur.execute("SELECT metric, ts, sensor_id, value FROM gold_central WHERE ts >= DATEADD(SECOND, -1, SYSUTCDATETIME()) ORDER BY metric, ts")
                 rows = cur.fetchall()
