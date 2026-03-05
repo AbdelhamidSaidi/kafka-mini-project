@@ -52,24 +52,6 @@ jobs:
           EOF
             echo "✅ .env file created with necessary environment variables"
 
-      - name: Install Docker if not present
-        run: |
-          ssh \
-            -i ~/.ssh/oci_vm_key \
-            -p "${{ secrets.OCI_PORT }}" \
-            "${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }}" \
-            "if ! command -v docker &> /dev/null; then
-              echo 'Installing Docker...'
-              sudo dnf install -y oracle-epel-release-el9
-              sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-              sudo systemctl start docker
-              sudo systemctl enable docker
-              sudo usermod -aG docker \$USER
-              echo '✅ Docker installed'
-            else
-              echo '✅ Docker already installed, skipping'
-            fi"
-
       - name: Write SSH key
         run: |
           mkdir -p ~/.ssh
@@ -107,6 +89,24 @@ jobs:
             --exclude ".pytest_cache" \
             --exclude "*.pyc" \
             ./ "${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }}:${{ secrets.OCI_APP_PATH }}/"
+
+      - name: Install Docker if not present
+        run: |
+          ssh \
+            -i ~/.ssh/oci_vm_key \
+            -p "${{ secrets.OCI_PORT }}" \
+            "${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }}" \
+            "if ! command -v docker &> /dev/null; then
+              echo 'Installing Docker...'
+              sudo dnf install -y oracle-epel-release-el9
+              sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+              sudo systemctl start docker
+              sudo systemctl enable docker
+              sudo usermod -aG docker \$USER
+              echo '✅ Docker installed'
+            else
+              echo '✅ Docker already installed, skipping'
+            fi"
 
       - name: Deploy with Docker Compose
         run: |
