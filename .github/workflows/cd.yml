@@ -14,13 +14,13 @@ jobs:
     name: Deploy to Oracle Cloud
     runs-on: ubuntu-latest
     env:
-      OCI_HOST: ${{ secrets.OCI_HOST }}
-      OCI_COMPARTMENT_ID: ${{ secrets.OCI_COMPARTMENT_ID }}
-      OCI_CONFIG_FILE: ${{ secrets.OCI_CONFIG_FILE }}
-      OCI_KEY_FILE: ${{ secrets.OCI_KEY_FILE }}
-      OCI_CONFIG_PROFILE: ${{ secrets.OCI_CONFIG_PROFILE }}
-      OCI_PORT: ${{ secrets.OCI_PORT || '22' }}
-      OCI_APP_PATH: ${{ secrets.OCI_APP_PATH || format('/home/{0}/kafka-mini-project', secrets.OCI_USER) }}
+      OCI_HOST: ${{ vars.OCI_HOST }}
+      OCI_COMPARTMENT_ID: ${{ vars.OCI_COMPARTMENT_ID }}
+      OCI_CONFIG_FILE: ${{ vars.OCI_CONFIG_FILE }}
+      OCI_KEY_FILE: ${{ vars.OCI_KEY_FILE }}
+      OCI_CONFIG_PROFILE: ${{ vars.OCI_CONFIG_PROFILE }}
+      OCI_PORT: ${{ vars.OCI_PORT || '22' }}
+      OCI_APP_PATH: ${{ vars.OCI_APP_PATH || format('/home/{0}/kafka-mini-project', vars.OCI_USER) }}
 
     steps:
       - name: Checkout
@@ -29,25 +29,25 @@ jobs:
       - name: Validate required secrets
         shell: bash
         run: |
-          test -n "${{ secrets.OCI_HOST }}" || (echo "Missing secret: OCI_HOST" && exit 1)
-          test -n "${{ secrets.OCI_USER }}" || (echo "Missing secret: OCI_USER" && exit 1)
-          test -n "${{ secrets.OCI_SSH_PRIVATE_KEY }}" || (echo "Missing secret: OCI_SSH_PRIVATE_KEY" && exit 1)
+          test -n "${{ vars.OCI_HOST }}" || (echo "Missing variable: OCI_HOST" && exit 1)
+          test -n "${{ vars.OCI_USER }}" || (echo "Missing variable: OCI_USER" && exit 1)
+          test -n "${{ vars.OCI_SSH_PRIVATE_KEY }}" || (echo "Missing variable: OCI_SSH_PRIVATE_KEY" && exit 1)
 
       - name: Setup SSH key
         shell: bash
         run: |
           mkdir -p ~/.ssh
-          printf "%s" "${{ secrets.OCI_SSH_PRIVATE_KEY }}" > ~/.ssh/oci_key
+          printf "%s" "${{ vars.OCI_SSH_PRIVATE_KEY }}" > ~/.ssh/oci_key
           chmod 600 ~/.ssh/oci_key
-          ssh-keyscan -p "$OCI_PORT" "${{ secrets.OCI_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -p "$OCI_PORT" "${{ vars.OCI_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Create .env file from secrets
         shell: bash
         run: |
-          if [ -n "${{ secrets.OCI_ENV_FILE }}" ]; then
-            printf "%s" "${{ secrets.OCI_ENV_FILE }}" > .env
+          if [ -n "${{ vars.OCI_ENV_FILE }}" ]; then
+            printf "%s" "${{ vars.OCI_ENV_FILE }}" > .env
           else
-            echo "Warning: OCI_ENV_FILE secret not set, proceeding without .env"
+            echo "Warning: OCI_ENV_FILE variable not set, proceeding without .env"
           fi
 
       - name: Sync repository to Oracle VM
@@ -58,12 +58,12 @@ jobs:
             --exclude ".git" \
             --exclude "__pycache__" \
             --exclude ".pytest_cache" \
-            ./ "${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }}:$OCI_APP_PATH/"
+            ./ "${{ vars.OCI_USER }}@${{ vars.OCI_HOST }}:$OCI_APP_PATH/"
 
       - name: Deploy with docker compose
         shell: bash
         run: |
-          ssh -i ~/.ssh/oci_key -p "$OCI_PORT" "${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }}" << 'EOF'
+          ssh -i ~/.ssh/oci_key -p "$OCI_PORT" "${{ vars.OCI_USER }}@${{ vars.OCI_HOST }}" << 'EOF'
             set -e
             APP_PATH="${{ env.OCI_APP_PATH }}"
             cd "$APP_PATH"
