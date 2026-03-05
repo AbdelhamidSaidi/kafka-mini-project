@@ -19,13 +19,29 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     volumes:
-      - kafka_data:/var/lib/kafka/data
+      - ./docker/kafka-data:/var/lib/kafka/data
+      - ./docker/kafka-config:/opt/kafka/config:ro
+
+  mssql:
+    build: ./docker/mssql
+    image: local/mssql:2019
+    container_name: mssql
+    environment:
+      - SA_PASSWORD=${MSSQL_SA_PASSWORD}
+      - ACCEPT_EULA=Y
+    ports:
+      - "1433:1433"
+    volumes:
+      - ./docker/mssql/data:/var/opt/mssql
+      - ./docker/mssql/initdb:/initdb
 
   airflow:
     build: ./docker/airflow
     image: local/airflow-mssql:2.8.1
     container_name: airflow
     restart: always
+    depends_on:
+      - mssql
     ports:
       - "8080:8080"
     environment:

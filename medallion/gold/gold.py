@@ -19,7 +19,7 @@ except Exception:
 
 def main():
     p = argparse.ArgumentParser(description='Launch gold transform and dim pipelines')
-    p.add_argument('--interval', type=int, default=5, help='poll interval seconds for both pipelines')
+    p.add_argument('--interval', type=int, default=1, help='poll interval seconds for both pipelines')
     p.add_argument('--both', action='store_true', help='run both transform_gold and dim concurrently')
     p.add_argument('--gold-only', action='store_true', help='run only the gold transformer')
     p.add_argument('--dim-only', action='store_true', help='run only the dim pipeline')

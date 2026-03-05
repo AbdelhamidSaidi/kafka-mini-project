@@ -214,7 +214,7 @@ def _parse_ts(ts):
     return ts
 
 
-def stream_dim_from_gold(poll_interval_seconds=5, run_once=False):
+def stream_dim_from_gold(poll_interval_seconds=1, run_once=False):
     conn = get_connection()
     cur = conn.cursor()
     try:
@@ -288,7 +288,7 @@ def stream_dim_from_gold(poll_interval_seconds=5, run_once=False):
 
 def main():
     p = argparse.ArgumentParser(description='Create/seed dim_<metric> tables from gold_central and keep them updated using a watermark')
-    p.add_argument('--interval', type=int, default=5, help='poll interval seconds')
+    p.add_argument('--interval', type=int, default=1, help='poll interval seconds')
     p.add_argument('--once', action='store_true', help='run once then exit')
     args = p.parse_args()
 

@@ -54,11 +54,6 @@ Thumbs.db
 desktop.ini
 ehthumbs.db
 
-# dotenv / secrets
-.env
-.env.*
-secrets.json
-
 # Logs
 *.log
 logs/
@@ -70,6 +65,9 @@ logs/
 # Docker overrides and local compose files
 docker-compose.override.yml
 docker-compose.local.yml
+
+# Ignore local SQL Server container data (should not be committed)
+docker/mssql/data/
 
 # Airflow metadata and logs (ignore runtime artifacts, keep DAGs)
 airflow.db

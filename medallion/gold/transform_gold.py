@@ -122,7 +122,7 @@ def evaluate_status(metric_name, value):
     return 'ok'
 
 
-def build_gold_layer(poll_interval_seconds=5):
+def build_gold_layer(poll_interval_seconds=1):
     conn = get_connection()
     cur = conn.cursor()
     try:
@@ -250,7 +250,7 @@ def build_gold_layer(poll_interval_seconds=5):
 
 def main():
     p = argparse.ArgumentParser(description='Run gold layer streaming transformer')
-    p.add_argument('--interval', type=int, default=5, help='poll interval seconds (default: 5)')
+    p.add_argument('--interval', type=int, default=1, help='poll interval seconds (default: 1)')
     args = p.parse_args()
     build_gold_layer(poll_interval_seconds=args.interval)
 

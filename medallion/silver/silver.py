@@ -1,16 +1,18 @@
+import os
 import pyodbc
 import datetime
 import traceback
 import time
 
+# Read DB config from environment when available (use .env or docker-compose)
 DB_CONFIG = {
-    'server': 'localhost',
-    'port': 1433,
-    'database': 'data_warehouse',
-    'driver': 'ODBC Driver 17 for SQL Server',
-    'uid': 'your_username',
-    'pwd': 'your_password',
-    'trusted_connection': 'yes'
+    'server': os.environ.get('MSSQL_SERVER', 'localhost'),
+    'port': int(os.environ.get('MSSQL_PORT', 1433)),
+    'database': os.environ.get('MSSQL_DATABASE', 'data_warehouse'),
+    'driver': os.environ.get('MSSQL_DRIVER', 'ODBC Driver 17 for SQL Server'),
+    'uid': os.environ.get('MSSQL_UID', 'your_username'),
+    'pwd': os.environ.get('MSSQL_PWD', 'your_password'),
+    'trusted_connection': os.environ.get('MSSQL_TRUSTED', 'yes')
 }
 
 def get_connection():
@@ -160,7 +162,7 @@ def parse_timestamp(ts_str):
             return None, 'bad_ts'
 
 
-def clean_and_store(poll_interval_seconds=5):
+def clean_and_store(poll_interval_seconds=1):
     conn = get_connection()
     conn.autocommit = False
     cur = conn.cursor()

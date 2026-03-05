@@ -1,3 +1,4 @@
+import os
 import urllib.parse
 from medallion.silver.silver import DB_CONFIG
 
@@ -27,9 +28,17 @@ def build_sqlalchemy_conn(cfg: dict) -> str:
 
 def write_env_file(path='.env'):
     conn = build_sqlalchemy_conn(DB_CONFIG)
+    # Preserve existing .env entries and update/add MSSQL_ALCHEMY_CONN
+    lines = []
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as f:
+            lines = f.read().splitlines()
+    # remove any existing MSSQL_ALCHEMY_CONN lines
+    lines = [l for l in lines if not l.strip().startswith('MSSQL_ALCHEMY_CONN=')]
+    lines.append(f"MSSQL_ALCHEMY_CONN={conn}")
     with open(path, 'w', encoding='utf-8') as f:
-        f.write(f"MSSQL_ALCHEMY_CONN={conn}\n")
-    print(f'Wrote {path} (MSSQL_ALCHEMY_CONN)')
+        f.write('\n'.join(lines) + '\n')
+    print(f'Updated {path} (MSSQL_ALCHEMY_CONN)')
 
 
 if __name__ == '__main__':

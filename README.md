@@ -73,6 +73,9 @@ Docker / Airflow quick start
 1. Generate `.env` with SQLAlchemy connection (reads `medallion/silver/silver.py` configuration):
 
 ```powershell
+# Copy the example env and set a strong SA password before starting
+copy .env.example .env
+# Edit `.env` and set `MSSQL_SA_PASSWORD` (and other vars if needed)
 python scripts/generate_mssql_env.py
 ```
 

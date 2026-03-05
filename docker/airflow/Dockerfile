@@ -16,5 +16,7 @@ RUN apt-get update \
 USER airflow
 
 # Install Python packages as the non-root `airflow` user to satisfy the image policy
+# Skip the `apache-airflow-providers-microsoft-mssql` provider to avoid building
+# `pymssql` from source inside the image (can be added later with proper build deps).
 RUN pip install --no-cache-dir --upgrade pip \
-  && pip install --no-cache-dir pyodbc apache-airflow-providers-microsoft-mssql
+  && pip install --no-cache-dir pyodbc

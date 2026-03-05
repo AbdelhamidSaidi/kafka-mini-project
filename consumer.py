@@ -80,7 +80,43 @@ def get_mssql_connection():
         + str(last_err)
     )
 
-# Ensure table exists
+
+def ensure_database_exists(database_name):
+
+    if not database_name:
+        return
+
+    driver = DB_CONFIG.get('driver', '')
+    if not driver.startswith('{'):
+        driver = '{' + driver + '}'
+
+    server = DB_CONFIG.get('server')
+    port = DB_CONFIG.get('port', 1433)
+    trusted = str(DB_CONFIG.get('trusted_connection', '')).lower() in ('yes', 'true', '1')
+
+    if trusted:
+        master_conn = f"DRIVER={driver};SERVER={server},{port};DATABASE=master;Trusted_Connection=yes;"
+    else:
+        uid = DB_CONFIG.get('uid')
+        pwd = DB_CONFIG.get('pwd', '')
+        master_conn = f"DRIVER={driver};SERVER={server},{port};DATABASE=master;UID={uid};PWD={pwd}"
+
+    try:
+        print(f"Ensuring database '{database_name}' exists (connecting to master)...")
+        conn = pyodbc.connect(master_conn, timeout=5)
+        conn.autocommit = True
+        cur = conn.cursor()
+        # Use DB_ID check to avoid race/create-if-exists issues
+        cur.execute(f"IF DB_ID(N'{database_name}') IS NULL BEGIN CREATE DATABASE [{database_name}] END")
+        cur.close()
+        conn.close()
+        print(f"Database '{database_name}' ensured (or already existed).")
+    except Exception as e:
+        # Don't raise here; main connection will surface the error if needed.
+        print(f"Warning: could not ensure database '{database_name}': {e}")
+
+# Ensure database exists and then ensure table exists
+ensure_database_exists(DB_CONFIG.get('database'))
 db_connection = get_mssql_connection()
 cursor = db_connection.cursor()
 cursor.execute('''
