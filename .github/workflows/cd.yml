@@ -14,7 +14,7 @@ jobs:
     name: Deploy to Oracle Cloud
     runs-on: ubuntu-latest
     environment: .env
-    
+
     env:
       OCI_HOST: ${{ secrets.OCI_HOST }}
       OCI_COMPARTMENT_ID: ${{ secrets.OCI_COMPARTMENT_ID }}
@@ -27,6 +27,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Create .env file from secrets
+        shell: bash
+        run: |
+            if [ -n "${{ secrets.OCI_ENV_FILE }}" ]; then
+            printf "%s" "${{ secrets.OCI_ENV_FILE }}" > .env
+            else
+            echo "Warning: OCI_ENV_FILE secret not set, proceeding without .env"
+            fi
+
 
       - name: Validate required secrets
         shell: bash
@@ -42,15 +52,6 @@ jobs:
           printf "%s" "${{ secrets.OCI_SSH_PRIVATE_KEY }}" > ~/.ssh/oci_key
           chmod 600 ~/.ssh/oci_key
           ssh-keyscan -p "$OCI_PORT" "${{ secrets.OCI_HOST }}" >> ~/.ssh/known_hosts
-
-      - name: Create .env file from secrets
-        shell: bash
-        run: |
-          if [ -n "${{ secrets.OCI_ENV_FILE }}" ]; then
-            printf "%s" "${{ secrets.OCI_ENV_FILE }}" > .env
-          else
-            echo "Warning: OCI_ENV_FILE secret not set, proceeding without .env"
-          fi
 
       - name: Sync repository to Oracle VM
         shell: bash
