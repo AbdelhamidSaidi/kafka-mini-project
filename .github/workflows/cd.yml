@@ -41,7 +41,8 @@ jobs:
         run: |
           test -n "${{ secrets.OCI_HOST }}" || (echo "Missing secret: OCI_HOST" && exit 1)
           test -n "${{ secrets.OCI_USER }}" || (echo "Missing secret: OCI_USER" && exit 1)
-          test -n "${{ secrets.OCI_SSH_PRIVATE_KEY }}" || (echo "Missing secret: OCI_SSH_PRIVATE_KEY" && exit 1)
+          test -n "${{ secrets.OCI_SSH_PRIVATE_KEY }}" || (echo "Missing secret: OCI_SSH_PRIVATE_KEY " && exit 1)
+          test -n "${{ secrets.OCI_VM_SSH_PRIVATE_KEY }}" || (echo "Missing secret: OCI_VM_SSH_PRIVATE_KEY (for Oracle VM connection)" && exit 1)
           echo "All required secrets are present"
 
       - name: Setup SSH key
@@ -67,7 +68,7 @@ jobs:
           OCI_USER="${{ secrets.OCI_USER }}"
           
           rsync -avz --delete \
-            -e "ssh -i ~/.ssh/oci_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p ${OCI_PORT:-22}" \
+            -e "ssh -i ~/.ssh/oci_vm_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p ${OCI_PORT:-22}" \
             --exclude ".git" \
             --exclude "__pycache__" \
             --exclude ".pytest_cache" \
@@ -80,7 +81,7 @@ jobs:
           OCI_APP_PATH="${{ secrets.OCI_APP_PATH }}"
           OCI_USER="${{ secrets.OCI_USER }}"
           
-          ssh -i ~/.ssh/oci_key \
+          ssh -i ~/.ssh/oci_vm_key \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -p "${OCI_PORT:-22}" \
