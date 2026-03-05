@@ -106,15 +106,42 @@ Streamlit dashboard features
   - Last-second variation charts and recent-series panels
   - Pipeline latency (per-dim table) and last-element latency per table
 
-Troubleshooting
+CI/CD Pipeline
 
-- ODBC/pyodbc errors: ensure the Microsoft ODBC driver is installed and visible to `pyodbc`.
-- Docker image build failures for Airflow: check the Docker build logs for missing apt packages or network errors; building the image on a machine with internet access usually resolves the msodbcsql install steps.
-- Streamlit shows an import error for `medallion`: run `pip install -r requirements.txt` and run Streamlit from the repo root (`streamlit run app/streamlit_app.py`).
+This repository includes automated CI/CD workflows using GitHub Actions:
 
-Contributing and next steps
+### Continuous Integration (CI)
 
-- Add integration tests that exercise the full pipeline with a test Kafka broker and ephemeral SQL Server instance.
-- Consider adding unique constraints and per-sensor watermarks for scalability in production.
+The CI workflow (`.github/workflows/ci.yml`) runs automatically on every push and pull request to `main`/`master`:
+
+- **Linting**: Runs `flake8` to check code quality (non-blocking)
+- **Unit Tests**: Executes transformation tests (`test/test_transformations.py`) and dashboard metrics tests (`test/test_streamlit_app.py`)
+- **Python Version**: Currently tests against Python 3.13
+- **Caching**: Uses pip caching to speed up dependency installation
+
+### Continuous Deployment (CD)
+
+The CD workflow (`.github/workflows/cd.yml`) automatically deploys to Oracle Cloud Infrastructure when code is pushed to `main`/`master`:
+
+- **Deployment Target**: Oracle Cloud VM instance
+- **Deployment Method**: 
+  - Syncs repository files via `rsync` over SSH
+  - Runs `docker compose up -d --build` on the remote server
+- **Required GitHub Secrets**:
+  - `OCI_HOST`: Oracle Cloud VM hostname/IP
+  - `OCI_USER`: SSH username for the VM
+  - `OCI_SSH_PRIVATE_KEY`: Private SSH key for authentication
+  - `OCI_PORT`: SSH port
+  - `OCI_APP_PATH`: Application directory path on VM (default: `/home/$OCI_USER/kafka-mini-project`)
+  - `OCI_ENV_FILE`: Optional `.env` file content to be written on the VM
+
+**Note**: The deployment uses concurrency control to prevent multiple simultaneous deployments.
+
+To set up CI/CD for your fork:
+1. Configure the required secrets in your GitHub repository settings
+2. Ensure your Oracle Cloud VM has Docker and Docker Compose installed
+3. Add your local SSH public key to the VM's `~/.ssh/authorized_keys`
+4. Push to `main` branch to trigger automatic deployment
+
 
 
