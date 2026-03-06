@@ -238,7 +238,3 @@ jobs:
           echo "❌ Timed out"
           exit 1
 
-      - name: Clean up S3 deploy artifact
-        if: always()
-        run: |
-          aws s3 rm "s3://${{ secrets.AWS_S3_DEPLOY_BUCKET }}/deploy/app.zip" || true
